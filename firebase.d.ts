@@ -203,6 +203,7 @@ export interface User {
     anonymous: boolean;
     providers: Array<Provider>;
     profileImageURL?: string;
+    facebookAccessToken?:string;
     /** iOS only */
     refreshToken?: string;
 }

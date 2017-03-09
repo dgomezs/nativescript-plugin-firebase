@@ -778,6 +778,7 @@ function toLoginResult(user) {
     emailVerified: user.isEmailVerified(),
     // provider: user.getProviderId(), // always 'firebase'
     providers: providers,
+    facebookAccessToken: firebase._facebookAccessToken,
     anonymous: user.isAnonymous(),
     profileImageURL: user.getPhotoUrl() ? user.getPhotoUrl().toString() : null
   };

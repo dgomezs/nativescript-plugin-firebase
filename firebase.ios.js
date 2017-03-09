@@ -10,6 +10,8 @@ firebase._messagingConnected = null;
 firebase._pendingNotifications = [];
 firebase._receivedPushTokenCallback = null;
 firebase._gIDAuthentication = null;
+firebase._facebookAccessToken = null;
+
 
 firebase._addObserver = function (eventName, callback) {
   var queue = utils.ios.getter(NSOperationQueue, NSOperationQueue.mainQueue);
@@ -861,6 +863,7 @@ function toLoginResult(user) {
     profileImageURL: user.photoURL ? user.photoURL.absoluteString : null,
     email: user.email,
     emailVerified: user.emailVerified,
+    facebookAccessToken: firebase._facebookAccessToken,
     name: user.displayName,
     refreshToken: user.refreshToken
   };
@@ -965,7 +968,8 @@ firebase.login = function (arg) {
             // headless facebook auth
             // var fIRAuthCredential = FIRFacebookAuthProvider.credentialWithAccessToken(fbSDKLoginManagerLoginResult.token.tokenString);
             var fIRAuthCredential = FIRFacebookAuthProvider.credentialWithAccessToken(FBSDKAccessToken.currentAccessToken().tokenString);
-            if (fAuth.currentUser) {
+              firebase._facebookAccessToken = FBSDKAccessToken.currentAccessToken().tokenString;
+              if (fAuth.currentUser) {
               // link credential, note that you only want to do this if this user doesn't already use fb as an auth provider
               var onCompletionLink = function (user, error) {
                 if (error) {
