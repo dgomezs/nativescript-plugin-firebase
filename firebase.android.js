@@ -878,7 +878,8 @@ firebase.login = function (arg) {
         if (arg.scope) {
           scope = arg.scope;
         }
-        var permissions = utils.ad.collections.stringArrayToStringSet(scope);
+
+        var permissions = java.util.Arrays.asList(scope);
 
         var activity = appModule.android.foregroundActivity;
         firebase._rememberedContext = appModule.android.currentContext;
