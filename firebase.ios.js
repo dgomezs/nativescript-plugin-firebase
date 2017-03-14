@@ -497,8 +497,10 @@ firebase.init = function (arg) {
         resolve(firebase.instance);
       }
 
-      // wrapped in a timeout to play nice with nativescript-angular's appdelegate handling
-      setTimeout(runInit, 0);
+      // wrapped in a timeout to play nice with nativescript-angular's appdelegate handling,
+      // but reverted because of #272
+      // setTimeout(runInit, 0);
+      runInit();
     } catch (ex) {
       console.log("Error in firebase.init: " + ex);
       reject(ex);
@@ -1542,7 +1544,7 @@ firebase.uploadFile = function (arg) {
         } else {
           resolve({
             name: metadata.name,
-            url: metadata.downloadURL.absoluteString,
+            url: metadata.downloadURL() ? metadata.downloadURL().absoluteString : null,
             contentType: metadata.contentType,
             created: metadata.timeCreated,
             updated: metadata.updated,
@@ -1744,37 +1746,34 @@ firebase.unsubscribeFromTopic = function(topicName){
       reject(ex);
     }
   });
-}
+};
 
-/*
- firebase.sendCrashLog = function (arg) {
- return new Promise(function (resolve, reject) {
- try {
+firebase.sendCrashLog = function (arg) {
+  return new Promise(function (resolve, reject) {
+    try {
+      if (typeof(FIRCrashLog) === "undefined") {
+        reject("Make sure 'Firebase/Crash' is in the plugin's Podfile - and if it is there's currently a problem with this Pod which is outside out span of control :(");
+        return;
+      }
 
- if (typeof(FIRCrashLog) === "undefined") {
- reject("Make sure 'Firebase/Crash' is in the plugin's Podfile");
- return;
- }
+      if (!arg.message) {
+        reject("The mandatory 'message' argument is missing");
+        return;
+      }
 
- if (!arg.log) {
- reject("The mandatory 'log' argument is missing");
- return;
- }
+      if (arg.showInConsole) {
+        FIRCrashNSLog(arg.message);
+      } else {
+        FIRCrashLog(arg.message);
+      }
 
- if (showInConsole) {
- FIRCrashNSLog(arg.log);
- } else {
- FIRCrashLog(arg.log);
- }
-
- resolve();
- } catch (ex) {
- console.log("Error in firebase.sendCrashLog: " + ex);
- reject(ex);
- }
- });
- };
- */
+      resolve();
+    } catch (ex) {
+      console.log("Error in firebase.sendCrashLog: " + ex);
+      reject(ex);
+    }
+  });
+};
 
 var GADBannerViewDelegateImpl = (function (_super) {
   __extends(GADBannerViewDelegateImpl, _super);
