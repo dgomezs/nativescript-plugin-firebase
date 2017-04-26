@@ -1,41 +1,41 @@
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
-
+/******/
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
-
+/******/
 /******/ 		// Check if module is in cache
 /******/ 		if(installedModules[moduleId])
 /******/ 			return installedModules[moduleId].exports;
-
+/******/
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = installedModules[moduleId] = {
 /******/ 			i: moduleId,
 /******/ 			l: false,
 /******/ 			exports: {}
 /******/ 		};
-
+/******/
 /******/ 		// Execute the module function
 /******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-
+/******/
 /******/ 		// Flag the module as loaded
 /******/ 		module.l = true;
-
+/******/
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-
-
+/******/
+/******/
 /******/ 	// expose the modules object (__webpack_modules__)
 /******/ 	__webpack_require__.m = modules;
-
+/******/
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
-
+/******/
 /******/ 	// identity function for calling harmony imports with the correct context
 /******/ 	__webpack_require__.i = function(value) { return value; };
-
+/******/
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
 /******/ 		if(!__webpack_require__.o(exports, name)) {
@@ -46,7 +46,7 @@
 /******/ 			});
 /******/ 		}
 /******/ 	};
-
+/******/
 /******/ 	// getDefaultExport function for compatibility with non-harmony modules
 /******/ 	__webpack_require__.n = function(module) {
 /******/ 		var getter = module && module.__esModule ?
@@ -55,13 +55,13 @@
 /******/ 		__webpack_require__.d(getter, 'a', getter);
 /******/ 		return getter;
 /******/ 	};
-
+/******/
 /******/ 	// Object.prototype.hasOwnProperty.call
 /******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
-
+/******/
 /******/ 	// __webpack_public_path__
 /******/ 	__webpack_require__.p = "";
-
+/******/
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(__webpack_require__.s = 15);
 /******/ })
@@ -2832,6 +2832,9 @@ function readConfig() {
         config = {};
     }
 }
+function isInteractive() {
+    return process.stdin && process.stdin.isTTY && process.stdout && process.stdout.isTTY;
+}
 
 // workaround for https://github.com/NativeScript/nativescript-cli/issues/2521 (2.5.0 only)
 var nativeScriptVersion = "";
@@ -2860,6 +2863,8 @@ if (process.argv.indexOf("config") === -1 && fs.existsSync(pluginConfigPath)) {
     console.log("***** in the node_modules/nativescript-plugin-firebase folder *****");
     console.log("*******************************************************************");
     console.log("*******************************************************************");
+} else if (!isInteractive()) {
+    console.log("No existing " + pluginConfigFile + " config file found and terminal is not interactive! Default configuration will be used.");
 } else {
     console.log("No existing " + pluginConfigFile + " config file found, so let's configure the Firebase plugin!");
     prompt.start();
@@ -3067,6 +3072,9 @@ dependencies {
     compile "com.google.firebase:firebase-database:10.2.+"
     compile "com.google.firebase:firebase-auth:10.2.+"
 
+    // for converting Java objects to JS
+    compile "com.google.code.gson:gson:2.8.+"
+
     // for reading google-services.json and configuration
     def googlePlayServicesVersion = project.hasProperty('googlePlayServicesVersion') ? project.googlePlayServicesVersion : '10.2.+'
     compile "com.google.android.gms:play-services-base:$googlePlayServicesVersion"
@@ -3151,7 +3159,7 @@ var fs = require("fs");
 module.exports = function() {
 
     console.log("Configure firebase");
-    var buildGradlePath = path.join(__dirname, "..", "..", "platforms", "android", "build.gradle"); 
+    var buildGradlePath = path.join(__dirname, "..", "..", "platforms", "android", "build.gradle");
     if (fs.existsSync(buildGradlePath)) {
         var buildGradleContent = fs.readFileSync(buildGradlePath).toString();
 
