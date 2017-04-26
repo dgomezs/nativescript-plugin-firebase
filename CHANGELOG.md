@@ -1,6 +1,87 @@
 <img src="docs/images/firebase-logo.png" width="116px" height="32px" alt="Firebase"/>
 
 
+## 3.11.4 (2017, April 21)
+
+[Full changelog](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/compare/3.11.3...3.11.4)
+
+### SDK versions
+
+- iOS: 3.13.x
+- Android: 10.2.x
+
+### Fixes
+- [#343](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/352) Fix hanging CI builds #352
+
+
+
+
+## 3.11.3 (2017, April 2)
+
+[Full changelog](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/compare/3.11.2...3.11.3)
+
+### SDK versions
+
+- iOS: 3.13.x
+- Android: 10.2.x
+
+### Fixes
+- [#343](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/343) Update dependency of xcode > node-uuid
+
+
+
+
+## 3.11.2 (2017, March 27)
+
+[Full changelog](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/compare/3.11.1...3.11.2)
+
+### SDK versions
+
+- iOS: 3.13.x
+- Android: 10.2.x
+
+### Fixes
+- [#333](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/333) New error after fresh install; Stop at ProcessProductPackaging
+
+
+
+
+## 3.11.1 (2017, March 23)
+
+[Full changelog](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/compare/3.11.0...3.11.1)
+
+### SDK versions
+
+- iOS: 3.13.x
+- Android: 10.2.x
+
+### New
+- [#226](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/226) Cannot find how to link anonymous account to other login type
+- [#316](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/316) Implemented email account linking
+- [#324](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/324) Use Gson to convert javaObject to jsObject
+
+### Fixes
+- [#331](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/331) CI builds may file if no entitlements file exists
+
+
+
+
+## 3.11.0 (2017, March 22)
+
+[Full changelog](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/compare/3.10.2...3.11.0)
+
+### SDK versions
+
+- iOS: 3.13.x
+- Android: 10.2.x
+
+### Fixes
+- [#304](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/304) IOS cloud notification on click not triggering addOnMessageReceivedCallback
+- [#274](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/274) Cleanup AppDelegate call #274
+
+
+
+
 ## 3.10.2 (2017, March 12)
 
 [Full changelog](https://github.com/EddyVerbruggen/nativescript-plugin-firebase/compare/3.10.1...3.10.2)

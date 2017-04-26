@@ -5,6 +5,7 @@ var utils = require("utils/utils");
 var types = require("utils/types");
 var frame = require("ui/frame");
 var platform = require("platform");
+var DeviceType = require("ui/enums").DeviceType;
 
 firebase._messagingConnected = null;
 firebase._pendingNotifications = [];
@@ -99,8 +100,6 @@ firebase.addAppDelegateMethods = function(appDelegate) {
 
   addBackgroundRemoteNotificationHandler(appDelegate);
 };
-
-addBackgroundRemoteNotificationHandler(getAppDelegate());
 
 firebase.addOnMessageReceivedCallback = function (callback) {
   return new Promise(function (resolve, reject) {
@@ -224,7 +223,7 @@ firebase._registerForRemoteNotifications = function () {
   }
   if (firebase._registerForRemoteNotificationsRanThisSession) {
     // ignore
-    return;
+    // return;
   }
   firebase._registerForRemoteNotificationsRanThisSession = true;
 
@@ -288,6 +287,29 @@ firebase._registerForRemoteNotifications = function () {
   }
 };
 
+function getAppDelegate() {
+  // Play nice with other plugins by not completely ignoring anything already added to the appdelegate
+  if (application.ios.delegate === undefined) {
+    var __extends = this.__extends || function (d, b) {
+          for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+          function __() { this.constructor = d; }
+          __.prototype = b.prototype;
+          d.prototype = new __();
+        };
+
+    var appDelegate = (function (_super) {
+      __extends(appDelegate, _super);
+      function appDelegate() {
+        _super.apply(this, arguments);
+      }
+      appDelegate.ObjCProtocols = [UIApplicationDelegate];
+      return appDelegate;
+    })(UIResponder);
+    application.ios.delegate = appDelegate;
+  }
+  return application.ios.delegate;
+}
+
 // rather than hijacking the appDelegate for these we'll be a good citizen and listen to the notifications
 function prepAppDelegate() {
   if (typeof(FIRMessaging) !== "undefined") {
@@ -327,29 +349,7 @@ function prepAppDelegate() {
   firebase.addAppDelegateMethods(getAppDelegate());
 }
 
-function getAppDelegate() {
-  // Play nice with other plugins by not completely ignoring anything already added to the appdelegate
-  if (application.ios.delegate === undefined) {
-    var __extends = this.__extends || function (d, b) {
-          for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-          function __() { this.constructor = d; }
-          __.prototype = b.prototype;
-          d.prototype = new __();
-        };
-
-    var appDelegate = (function (_super) {
-      __extends(appDelegate, _super);
-      function appDelegate() {
-        _super.apply(this, arguments);
-      }
-      firebase.addAppDelegateMethods(appDelegate);
-      appDelegate.ObjCProtocols = [UIApplicationDelegate];
-      return appDelegate;
-    })(UIResponder);
-    application.ios.delegate = appDelegate;
-  }
-  return application.ios.delegate;
-}
+prepAppDelegate();
 
 firebase.toJsObject = function(objCObj) {
   if (objCObj === null || typeof objCObj != "object") {
@@ -422,8 +422,6 @@ firebase.init = function (arg) {
       function runInit() {
         arg = arg || {};
 
-        prepAppDelegate();
-
         // this requires you to download GoogleService-Info.plist and
         // it to app/App_Resources/iOS/, see https://firebase.google.com/support/guides/firebase-ios
         FIRApp.configure();
@@ -495,9 +493,6 @@ firebase.init = function (arg) {
         resolve(firebase.instance);
       }
 
-      // wrapped in a timeout to play nice with nativescript-angular's appdelegate handling,
-      // but reverted because of #272
-      // setTimeout(runInit, 0);
       runInit();
     } catch (ex) {
       console.log("Error in firebase.init: " + ex);
@@ -573,10 +568,12 @@ firebase.admob.showBanner = function (arg) {
       var settings = firebase.merge(arg, firebase.admob.defaults);
       var view = settings.view;
       var bannerType = firebase.admob._getBannerType(settings.size);
-      var adViewSize = CGSizeFromGADAdSize(bannerType);
 
-      var originX = (view.frame.size.width - adViewSize.width) / 2;
-      var originY = settings.margins.top > -1 ? settings.margins.top : (settings.margins.bottom > -1 ? view.frame.size.height - adViewSize.height - settings.margins.bottom : 0.0);
+      var adWidth = bannerType.size.width === 0 ? view.frame.size.width : bannerType.size.width;
+      var adHeight = bannerType.size.smartHeight ? bannerType.size.smartHeight : bannerType.size.height;
+
+      var originX = (view.frame.size.width - adWidth) / 2;
+      var originY = settings.margins.top > -1 ? settings.margins.top : (settings.margins.bottom > -1 ? view.frame.size.height - adHeight - settings.margins.bottom : 0.0);
       var origin = CGPointMake(originX, originY);
       firebase.admob.adView = GADBannerView.alloc().initWithAdSizeOrigin(bannerType, origin);
 
@@ -678,29 +675,38 @@ firebase.admob.hideBanner = function () {
 };
 
 firebase.admob._getBannerType = function(size) {
-  // Note that when the app is archived symbols like kGADAdSizeSmartBannerPortrait
-  // are normally not available in {N}.. that's why we added those to build.xcconfig.
-  // However, if that still fails this would work: GADAdSizeFromCGSize(CGSizeMake(250, 250))
-  // (but we then need to hardcode the sizes..)
+  // see nativescript-admob's iOS sourcecode for why we're not using SDK-provided constants here
   if (size == firebase.admob.AD_SIZE.BANNER) {
-    return kGADAdSizeBanner;
+    // return kGADAdSizeBanner;
+    return {"size":{"width":320,"height":50},"flags":0};
   } else if (size == firebase.admob.AD_SIZE.LARGE_BANNER) {
-    return kGADAdSizeLargeBanner;
+    // return kGADAdSizeLargeBanner;
+    return {"size":{"width":320,"height":100},"flags":0};
   } else if (size == firebase.admob.AD_SIZE.MEDIUM_RECTANGLE) {
-    return kGADAdSizeMediumRectangle;
+    // return kGADAdSizeMediumRectangle;
+    return {"size":{"width":300,"height":250},"flags":0};
   } else if (size == firebase.admob.AD_SIZE.FULL_BANNER) {
-    return kGADAdSizeFullBanner;
+    // return kGADAdSizeFullBanner;
+    return {"size":{"width":468,"height":60},"flags":0};
   } else if (size == firebase.admob.AD_SIZE.LEADERBOARD) {
-    return kGADAdSizeLeaderboard;
-  } else if (size == firebase.admob.AD_SIZE.SMART_BANNER) {
+    // return kGADAdSizeLeaderboard;
+    return {"size":{"width":728,"height":90},"flags":0};
+  } else if (size == firebase.admob.AD_SIZE.SKYSCRAPER) {
+    // return kGADAdSizeSkyscraper;
+    return {"size":{"width":120,"height":600},"flags":0};
+  } else if (size == firebase.admob.AD_SIZE.SMART_BANNER || size == firebase.admob.AD_SIZE.FLUID) {
     var orientation = utils.ios.getter(UIDevice, UIDevice.currentDevice).orientation;
+    var isIPad = platform.device.deviceType === DeviceType.Tablet;
     if (orientation == UIDeviceOrientation.UIDeviceOrientationPortrait || orientation == UIDeviceOrientation.UIDeviceOrientationPortraitUpsideDown) {
-      return kGADAdSizeSmartBannerPortrait;
+      // return kGADAdSizeSmartBannerPortrait;
+      return {"size":{"width":0,"height":0,"smartHeight":isIPad ? 90 : 50},"flags":18};
     } else {
-      return kGADAdSizeSmartBannerLandscape;
+      // return kGADAdSizeSmartBannerLandscape;
+      return {"size":{"width":0,"height":0,"smartHeight":isIPad ? 90 : 32},"flags":26};
     }
   } else {
-    return kGADAdSizeInvalid;
+    // return kGADAdSizeInvalid;
+    return {"size":{"width":-1,"height":-1},"flags":0};
   }
 };
 
@@ -850,9 +856,8 @@ function toLoginResult(user) {
   for (i = 0, l = user.providerData.count; i < l; i++) {
     var firUserInfo = user.providerData.objectAtIndex(i);
     var pid = firUserInfo.valueForKey("providerID");
-    providers.push({
-      id: pid
-    });
+    if (pid==='facebook.com') { providers.push({ id: pid, token: FBSDKAccessToken.currentAccessToken().tokenString }); }
+    else { providers.push({ id: pid }); }
   }
 
   return {
@@ -931,7 +936,23 @@ firebase.login = function (arg) {
         if (!arg.email || !arg.password) {
           reject("Auth type emailandpassword requires an email and password argument");
         } else {
-          fAuth.signInWithEmailPasswordCompletion(arg.email, arg.password, onCompletion);
+            var fIRAuthCredential = FIREmailPasswordAuthProvider.credentialWithEmailPassword(arg.email, arg.password)
+            if (fAuth.currentUser) {
+                // link credential, note that you only want to do this if this user doesn't already use fb as an auth provider
+                var onCompletionLink = function (user, error) {
+                    if (error) {
+                        // ignore, as this one was probably already linked, so just return the user
+                        log("--- linking error: " + error.localizedDescription);
+                        fAuth.signInWithCredentialCompletion(fIRAuthCredential, onCompletion);
+                    } else {
+                        onCompletion(user);
+                    }
+                };
+                fAuth.currentUser.linkWithCredentialCompletion(fIRAuthCredential, onCompletionLink);
+
+            } else {
+                fAuth.signInWithEmailPasswordCompletion(arg.email, arg.password, onCompletion);
+            }
         }
 
       } else if (arg.type === firebase.LoginType.CUSTOM) {

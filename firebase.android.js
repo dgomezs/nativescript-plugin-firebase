@@ -14,6 +14,8 @@ firebase._facebookAccessToken = null;
 var fbCallbackManager = null;
 var GOOGLE_SIGNIN_INTENT_ID = 123;
 
+var gson = typeof(com.google.gson) === "undefined" ? null : new com.google.gson.Gson();
+
 (function() {
   if (typeof(com.google.firebase.messaging) === "undefined") {
     return;
@@ -107,6 +109,15 @@ firebase.toValue = function(val){
 };
 
 firebase.toJsObject = function(javaObj) {
+  if (gson !== null) {
+    return JSON.parse(gson.toJson(javaObj));
+  } else {
+    // temp fallback for folks not having fetched gson yet in their build for some reason
+    return firebase.toJsObjectLegacy(javaObj);
+  }
+};
+
+firebase.toJsObjectLegacy = function(javaObj) {
   if (javaObj === null || typeof javaObj != "object") {
     return javaObj;
   }
@@ -124,7 +135,7 @@ firebase.toJsObject = function(javaObj) {
     case 'java.util.ArrayList':
       node = [];
       for (var i = 0; i < javaObj.size(); i++) {
-        node[i] = firebase.toJsObject(javaObj.get(i));
+        node[i] = firebase.toJsObjectLegacy(javaObj.get(i));
       }
       break;
     default:
@@ -132,7 +143,7 @@ firebase.toJsObject = function(javaObj) {
       var iterator = javaObj.entrySet().iterator();
       while (iterator.hasNext()) {
         var item = iterator.next();
-        node[item.getKey()] = firebase.toJsObject(item.getValue());
+        node[item.getKey()] = firebase.toJsObjectLegacy(item.getValue());
       }
   }
   return node;
@@ -743,8 +754,8 @@ firebase.getAuthToken = function (arg) {
         });
 
         user.getToken(arg.forceRefresh)
-          .addOnSuccessListener(onSuccessListener)
-          .addOnFailureListener(onFailureListener);
+            .addOnSuccessListener(onSuccessListener)
+            .addOnFailureListener(onFailureListener);
 
       } else {
         reject("Log in first");
@@ -766,9 +777,8 @@ function toLoginResult(user) {
   var providerData = user.getProviderData();
   for (var i = 0; i < providerData.size(); i++) {
     var pid = providerData.get(i).getProviderId();
-    providers.push({
-      id: pid
-    });
+    if (pid==='facebook.com') { providers.push({ id: pid, token: firebase._facebookAccessToken }); }
+    else { providers.push({ id: pid }); }
   }
 
   return {
@@ -802,7 +812,7 @@ firebase.login = function (arg) {
             console.log("Logging in the user failed. " + (task.getException() && task.getException().getReason ? task.getException().getReason() : task.getException()));
             // also disconnect from Google otherwise ppl can't connect with a different account
             if (firebase._mGoogleApiClient) {
-                com.google.android.gms.auth.api.Auth.GoogleSignInApi.revokeAccess(firebase._mGoogleApiClient);
+              com.google.android.gms.auth.api.Auth.GoogleSignInApi.revokeAccess(firebase._mGoogleApiClient);
             }
             reject("Logging in the user failed. " + (task.getException() && task.getException().getReason ? task.getException().getReason() : task.getException()));
           } else {
@@ -819,7 +829,17 @@ firebase.login = function (arg) {
         if (!arg.email || !arg.password) {
           reject("Auth type emailandpassword requires an email and password argument");
         } else {
-          firebaseAuth.signInWithEmailAndPassword(arg.email, arg.password).addOnCompleteListener(onCompleteListener);
+            var user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (user) {
+                if (firebase._alreadyLinkedToAuthProvider(user, "password")) {
+                    firebaseAuth.signInWithEmailAndPassword(arg.email, arg.password).addOnCompleteListener(onCompleteListener);
+                } else {
+                    var authCredential = com.google.firebase.auth.EmailAuthProvider.getCredential(arg.email, arg.password);
+                    user.linkWithCredential(authCredential).addOnCompleteListener(onCompleteListener);
+                }
+            } else {
+                firebaseAuth.signInWithEmailAndPassword(arg.email, arg.password).addOnCompleteListener(onCompleteListener);
+            }
         }
 
       } else if (arg.type === firebase.LoginType.CUSTOM) {
@@ -941,7 +961,7 @@ firebase.login = function (arg) {
                 firebaseAuth.signInWithCredential(authCredential).addOnCompleteListener(onCompleteListener);
               }
             } else {
-              console.log("Make sure you've uploaded you SHA1 fingerprint(s) to the Firebase console");
+              console.log("Make sure you've uploaded your SHA1 fingerprint(s) to the Firebase console");
               reject("Has the SHA1 fingerprint been uploaded? Sign-in status: " + googleSignInResult.getStatus());
             }
           }
@@ -1304,7 +1324,7 @@ firebase.update = function (path, val) {
   return new Promise(function (resolve, reject) {
     try {
       if (typeof val == "object") {
-      firebase.instance.child(path).updateChildren(firebase.toHashMap(val));
+        firebase.instance.child(path).updateChildren(firebase.toHashMap(val));
       } else {
         var lastPartOfPath = path.lastIndexOf("/");
         var pathPrefix = path.substring(0, lastPartOfPath);
@@ -1401,9 +1421,10 @@ firebase.query = function (updateCallback, path, options) {
       if (options.singleEvent) {
         var listener = new com.google.firebase.database.ValueEventListener({
           onDataChange: function (snapshot) {
-            updateCallback(firebase.getCallbackData('ValueChanged', snapshot));
+            var data = firebase.getCallbackData('ValueChanged', snapshot);
+            updateCallback(data);
             // resolve promise with data in case of single event, see https://github.com/EddyVerbruggen/nativescript-plugin-firebase/issues/126
-            resolve(firebase.getCallbackData('ValueChanged', snapshot));
+            resolve(data);
           },
           onCancelled: function (databaseError) {
             updateCallback({
@@ -1709,7 +1730,7 @@ firebase.subscribeToTopic = function(topicName){
 firebase.unsubscribeFromTopic = function(topicName){
   return new Promise(function (resolve, reject) {
     try {
-      
+
       if (typeof(com.google.firebase.messaging) === "undefined") {
         reject("Uncomment firebase-messaging in the plugin's include.gradle first");
         return;
@@ -1719,14 +1740,14 @@ firebase.unsubscribeFromTopic = function(topicName){
         reject("Can be run only after init");
         return;
       }
-      
+
       com.google.firebase.messaging.FirebaseMessaging.getInstance().unsubscribeFromTopic(topicName);
       resolve();
     } catch(ex){
       console.log("Error in firebase.unsubscribeFromTopic: " + ex);
       reject(ex);
     }
-  }); 
+  });
 };
 
 firebase.sendCrashLog = function (arg) {
